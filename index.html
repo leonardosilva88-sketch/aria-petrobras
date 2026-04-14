@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — Assistente de Acessibilidade Petrobras</title>
+<style>
+  :root {
+    --petro-green: #009b3a;
+    --petro-yellow: #FFC72C;
+    --petro-dark: #003366;
+    --petro-light: #f0f4f8;
+    --aria-bg: #1a1a2e;
+    --aria-panel: #16213e;
+    --aria-card: #0f3460;
+    --aria-accent: #00d4aa;
+    --aria-text: #e0e0e0;
+    --user-bubble: #003366;
+    --bot-bubble: #0f3460;
+    --success: #00d4aa;
+    --warning: #FFC72C;
+    --danger: #ff6b6b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--aria-bg);
+    color: var(--aria-text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--petro-dark), var(--aria-card));
+    border-bottom: 3px solid var(--aria-accent);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .aria-avatar {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--aria-accent), var(--petro-green));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.4);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0,212,170,0.4); }
+    50% { box-shadow: 0 0 35px rgba(0,212,170,0.8); }
+  }
+  .header-info h1 { font-size: 16px; color: #fff; font-weight: 700; }
+  .header-info p { font-size: 12px; color: var(--aria-accent); }
+  .header-badges { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    border: 1px solid;
+  }
+  .badge-green { background: rgba(0,155,58,0.2); border-color: var(--petro-green); color: var(--petro-green); }
+  .badge-teal { background: rgba(0,212,170,0.15); border-color: var(--aria-accent); color: var(--aria-accent); }
+  .badge-yellow { background: rgba(255,199,44,0.15); border-color: var(--petro-yellow); color: var(--petro-yellow); }
+
+  /* Main layout */
+  .main {
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--aria-panel);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sidebar-right {
+    background: var(--aria-panel);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--aria-accent); margin-bottom: 4px;
+  }
+
+  /* Flow steps */
+  .flow-step {
+    background: var(--aria-card);
+    border-radius: 10px;
+    padding: 12px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .flow-step.active { border-left-color: var(--aria-accent); background: rgba(0,212,170,0.1); }
+  .flow-step.done { border-left-color: var(--petro-green); opacity: 0.7; }
+  .flow-step h3 { font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .flow-step p { font-size: 11px; color: #aaa; line-height: 1.4; }
+  .step-num {
+    position: absolute; top: 10px; right: 10px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--aria-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--aria-accent);
+    border: 1px solid var(--aria-accent);
+  }
+  .step-connector {
+    width: 2px; height: 16px;
+    background: linear-gradient(to bottom, var(--aria-accent), transparent);
+    margin: 0 auto;
+  }
+
+  /* Chat area */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-track { background: transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  /* Messages */
+  .msg-row { display: flex; gap: 10px; align-items: flex-start; animation: fadeInUp 0.4s ease; }
+  .msg-row.user { flex-direction: row-reverse; }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .msg-avatar.aria { background: linear-gradient(135deg, var(--aria-accent), #0099aa); }
+  .msg-avatar.user { background: linear-gradient(135deg, var(--petro-dark), #0055aa); }
+  .bubble {
+    max-width: 70%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    position: relative;
+  }
+  .bubble.aria {
+    background: var(--bot-bubble);
+    border-top-left-radius: 4px;
+    color: #e0e0e0;
+    border: 1px solid rgba(0,212,170,0.2);
+  }
+  .bubble.user {
+    background: var(--user-bubble);
+    border-top-right-radius: 4px;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .bubble .timestamp {
+    font-size: 10px; color: #666; margin-top: 6px;
+    display: block;
+  }
+
+  /* Quick options */
+  .quick-opts {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;
+  }
+  .quick-opt {
+    padding: 6px 14px;
+    background: rgba(0,212,170,0.1);
+    border: 1px solid var(--aria-accent);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--aria-accent);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .quick-opt:hover { background: rgba(0,212,170,0.25); transform: translateY(-1px); }
+
+  /* AI classification box */
+  .ai-box {
+    background: rgba(0,212,170,0.05);
+    border: 1px solid rgba(0,212,170,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .ai-box .ai-label { color: var(--aria-accent); font-weight: 700; font-size: 11px; margin-bottom: 6px; }
+  .ai-tag {
+    display: inline-block;
+    padding: 2px 8px; border-radius: 10px; margin: 2px;
+    font-size: 11px; font-weight: 600;
+  }
+  .tag-tech { background: rgba(0,150,255,0.2); color: #4db8ff; }
+  .tag-att { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+  .tag-visual { background: rgba(255,199,44,0.2); color: var(--petro-yellow); }
+  .tag-high { background: rgba(255,107,107,0.2); color: #ff6b6b; }
+
+  /* Protocol box */
+  .protocol-box {
+    background: rgba(0,155,58,0.1);
+    border: 1px solid var(--petro-green);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-top: 8px;
+  }
+  .protocol-box .proto-id { 
+    font-family: monospace; 
+    font-size: 13px; 
+    color: var(--petro-green); 
+    font-weight: 700;
+    background: rgba(0,155,58,0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .proto-row { display: flex; gap: 8px; align-items: center; margin: 4px 0; font-size: 12px; }
+  .proto-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Chat input */
+  .chat-input-area {
+    padding: 16px 20px;
+    background: var(--aria-panel);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .accessibility-btns { display: flex; gap: 6px; }
+  .acc-btn {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: var(--aria-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #aaa;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .acc-btn:hover { border-color: var(--aria-accent); color: var(--aria-accent); }
+  .input-wrapper { flex: 1; position: relative; }
+  .chat-input {
+    width: 100%;
+    background: var(--aria-card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 10px 18px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--aria-accent); }
+  .chat-input::placeholder { color: #555; }
+  .send-btn {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--aria-accent), var(--petro-green));
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { transform: scale(1.1); box-shadow: 0 0 20px rgba(0,212,170,0.5); }
+
+  /* Right panel */
+  .info-card {
+    background: var(--aria-card);
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .info-card h4 { font-size: 11px; font-weight: 700; color: var(--aria-accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .resource-item {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: background 0.2s;
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .resource-item:hover { background: rgba(255,255,255,0.03); }
+  .resource-item:last-child { border-bottom: none; }
+  .res-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .res-info h5 { font-size: 12px; color: #ddd; font-weight: 600; }
+  .res-info p { font-size: 11px; color: #777; margin-top: 2px; }
+
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { font-size: 12px; color: #999; }
+  .stat-val { font-size: 13px; font-weight: 700; color: #fff; }
+  .stat-val.green { color: var(--petro-green); }
+  .stat-val.teal { color: var(--aria-accent); }
+  .stat-val.yellow { color: var(--petro-yellow); }
+
+  .progress-bar-wrap { margin: 4px 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 3px; }
+  .progress-bar { height: 5px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 5px; transition: width 1s ease; }
+
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--aria-accent); animation: typingBounce 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+  }
+
+  .scenario-btn {
+    width: 100%;
+    background: var(--aria-card);
+    border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #ddd;
+    cursor: pointer;
+    text-align: left;
+    font-size: 12px;
+    transition: all 0.2s;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .scenario-btn:hover { border-color: var(--aria-accent); background: rgba(0,212,170,0.05); }
+  .scenario-btn.active { border-color: var(--aria-accent); background: rgba(0,212,170,0.1); }
+
+  /* Scrollbar */
+  .sidebar::-webkit-scrollbar, .sidebar-right::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb, .sidebar-right::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar, .sidebar-right { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="aria-avatar">🤖</div>
+  <div class="header-info">
+    <h1>ARIA — Assistente de Inteligência em Acessibilidade</h1>
+    <p>Petrobras · Sistema de Suporte Inclusivo · Powered by IA</p>
+  </div>
+  <div class="header-badges">
+    <span class="badge badge-green">🟢 Online</span>
+    <span class="badge badge-teal">🔐 Sigilo garantido</span>
+    <span class="badge badge-yellow">♿ Acessível</span>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Left sidebar: flow steps -->
+  <div class="sidebar">
+    <div class="panel-title">📋 Fluxo de Atendimento</div>
+
+    <div class="flow-step done" id="step1">
+      <div class="step-num">✓</div>
+      <h3>1. Acolhimento</h3>
+      <p>Apresentação empática e configuração de acessibilidade</p>
+    </div>
+    <div class="step-connector"></div>
+    <div class="flow-step active" id="step2">
+      <div class="step-num">2</div>
+      <h3>2. Coleta de Dados</h3>
+      <p>NLP classifica tipo de barreira e urgência em tempo real</p>
+    </div>
+    <div class="step-connector"></div>
+    <div class="flow-step" id="step3">
+      <div class="step-num">3</div>
+      <h3>3. RAG Matching</h3>
+      <p>IA busca soluções na base de conhecimento</p>
+    </div>
+    <div class="step-connector"></div>
+    <div class="flow-step" id="step4">
+      <div class="step-num">4</div>
+      <h3>4. Encaminhamento</h3>
+      <p>Protocolo gerado e área competente notificada</p>
+    </div>
+    <div class="step-connector"></div>
+    <div class="flow-step" id="step5">
+      <div class="step-num">5</div>
+      <h3>5. Acompanhamento</h3>
+      <p>Atualizações proativas e feedback do colaborador</p>
+    </div>
+
+    <div class="panel-title" style="margin-top:8px">🎭 Cenários Demonstração</div>
+
+    <button class="scenario-btn active" onclick="loadScenario('visual')">
+      <span>👁️</span>
+      <span>Deficiência visual + barreira tecnológica</span>
+    </button>
+    <button class="scenario-btn" onclick="loadScenario('auditiva')">
+      <span>👂</span>
+      <span>Deficiência auditiva + reunião sem Libras</span>
+    </button>
+    <button class="scenario-btn" onclick="loadScenario('fisica')">
+      <span>♿</span>
+      <span>Deficiência física + barreira arquitetônica</span>
+    </button>
+    <button class="scenario-btn" onclick="loadScenario('atitudinal')">
+      <span>⚠️</span>
+      <span>Barreira atitudinal / capacitismo</span>
+    </button>
+    <button class="scenario-btn" onclick="loadScenario('autismo')">
+      <span>🧩</span>
+      <span>Neurodivergência / Espectro autista</span>
+    </button>
+  </div>
+
+  <!-- Chat area -->
+  <div class="chat-area">
+    <div class="chat-messages" id="chatMessages"></div>
+
+    <!-- Input -->
+    <div class="chat-input-area">
+      <div class="accessibility-btns">
+        <button class="acc-btn" title="Acessibilidade visual" onclick="toggleContrast()">🌗</button>
+        <button class="acc-btn" title="Entrada por voz" onclick="voiceInput()">🎤</button>
+        <button class="acc-btn" title="Aumentar texto" onclick="increaseText()">A+</button>
+        <button class="acc-btn" title="Libras" onclick="alert('Modo Libras: conectando intérprete virtual...')">🤟</button>
+      </div>
+      <div class="input-wrapper">
+        <input type="text" class="chat-input" id="userInput"
+          placeholder="Digite sua mensagem ou use os botões de acessibilidade..."
+          onkeypress="handleKey(event)" />
+      </div>
+      <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- Right sidebar: context panel -->
+  <div class="sidebar-right">
+    <div class="panel-title">🔍 Classificação em Tempo Real</div>
+    <div class="info-card" id="classificationCard">
+      <h4>Análise da IA</h4>
+      <div id="classificationContent">
+        <div style="color:#666; font-size:12px; text-align:center; padding:16px 0;">
+          Aguardando descrição do colaborador...
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-title">📚 Soluções Encontradas</div>
+    <div class="info-card" id="solutionsCard">
+      <h4>Base de Conhecimento (RAG)</h4>
+      <div id="solutionsContent">
+        <div style="color:#666; font-size:12px; text-align:center; padding:12px 0;">
+          Nenhuma busca realizada ainda
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-title">📊 Métricas da Sessão</div>
+    <div class="info-card">
+      <h4>Performance</h4>
+      <div class="stat-row">
+        <span class="stat-label">Tempo de resposta</span>
+        <span class="stat-val teal" id="responseTime">0.8s</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Confiança da IA</span>
+        <span class="stat-val green" id="aiConfidence">—</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Etapa atual</span>
+        <span class="stat-val yellow" id="currentStep">Acolhimento</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Mensagens trocadas</span>
+        <span class="stat-val" id="msgCount">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Protocolo</span>
+        <span class="stat-val teal" id="protocolNum">—</span>
+      </div>
+    </div>
+
+    <div class="panel-title">🏢 Áreas Envolvidas</div>
+    <div class="info-card">
+      <h4>Roteamento</h4>
+      <div id="routingContent">
+        <div style="color:#666; font-size:12px; text-align:center; padding:12px 0;">
+          Aguardando classificação...
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const scenarios = {
+  visual: {
+    flow: [
+      { role: 'aria', text: 'Olá! 👋 Sou a <strong>ARIA</strong>, a assistente de inteligência em acessibilidade da Petrobras. Estou aqui para te ajudar com qualquer necessidade de adaptação ou inclusão no ambiente de trabalho.<br><br>Tudo que você compartilhar comigo é tratado com <strong>total sigilo e respeito</strong>. Como posso te chamar?', delay: 500 },
+      { role: 'user', text: 'Pode me chamar de Carla.', delay: 1500 },
+      { role: 'aria', text: 'Prazer, Carla! 😊 Antes de continuar, quero garantir que você esteja confortável. Você prefere que eu responda por <strong>texto</strong>, <strong>áudio</strong> ou ativar o <strong>modo de alto contraste</strong>?', delay: 2500,
+        options: ['📝 Texto (padrão)', '🔊 Áudio', '🌓 Alto contraste', '🤟 Libras'] },
+      { role: 'user', text: '📝 Texto (padrão)', delay: 4000 },
+      { role: 'aria', text: 'Perfeito! Me conta, Carla — o que está acontecendo? Pode descrever com suas próprias palavras, sem pressa. 💙', delay: 5000 },
+      { role: 'user', text: 'Tenho deficiência visual parcial e meu monitor é muito antigo. Preciso aproximar demais o rosto para enxergar. Já pedi pro meu gestor faz mais de 2 meses e não tive retorno nenhum.', delay: 6500 },
+      { role: 'aria', text: 'Obrigada por compartilhar isso comigo, Carla. Entendo que essa situação está impactando diretamente o seu trabalho — e a falta de resposta por 2 meses é inaceitável e precisa ser tratada com prioridade.<br><br>Vou te ajudar a resolver isso agora. 🔍 Enquanto conversamos, já estou identificando o tipo de demanda...', delay: 8000, classify: true },
+      { role: 'aria', text: 'Identifiquei <strong>duas barreiras</strong> no seu relato:<br>• 🖥️ <strong>Barreira Tecnológica</strong> — equipamento inadequado para baixa visão<br>• ⚠️ <strong>Barreira Atitudinal</strong> — omissão do gestor diante de solicitação legítima de PCD<br><br>Para completar o registro: o monitor é de mesa ou notebook? E você já usa algum recurso de acessibilidade digital (ampliador de tela, leitor de tela)?', delay: 10000 },
+      { role: 'user', text: 'Monitor de mesa. Não uso nada ainda, nunca me ofereceram nada.', delay: 12000 },
+      { role: 'aria', text: '✅ Registro completo. Encontrei <strong>3 soluções disponíveis agora</strong> na Petrobras:<br><br>1. 🖥️ <strong>Monitor Full HD 27"</strong> com filtro de acessibilidade — catálogo TIC, prazo de 15 dias úteis<br>2. 💻 <strong>Software NVDA</strong> (leitor de tela) — já licenciado, disponível sem aprovação do gestor<br>3. 🔍 <strong>Ampliador de Tela ZoomText</strong> — instalação remota pela TIC em até 5 dias<br><br>Estou abrindo seu protocolo agora...', delay: 14000, solutions: true },
+      { role: 'aria', text: '🎉 <strong>Protocolo gerado!</strong><br><br>📋 <code>#ARB-2024-1203-VIS</code><br><br>✅ Chamado TIC aberto automaticamente<br>✅ BP de RH notificado sobre a demora do gestor<br>✅ E-mail de confirmação enviado para você<br><br>Você receberá atualizações em até <strong>3 dias úteis</strong>. Tem mais alguma coisa em que eu possa te ajudar, Carla?', delay: 16500, protocol: '#ARB-2024-1203-VIS' },
+    ]
+  },
+  auditiva: {
+    flow: [
+      { role: 'aria', text: 'Olá! 👋 Sou a <strong>ARIA</strong>, assistente de acessibilidade da Petrobras. Estou aqui para te ajudar. Como posso te chamar?', delay: 500 },
+      { role: 'user', text: 'Oi, pode chamar de Roberto.', delay: 1500 },
+      { role: 'aria', text: 'Olá, Roberto! 😊 Me conta o que está precisando — sem pressa, pode descrever da forma que for mais confortável.', delay: 2500 },
+      { role: 'user', text: 'Sou surdo e participo de reuniões semanais de equipe. Nunca tem intérprete de Libras e fico completamente perdido. Meu chefe diz que é difícil conseguir isso.', delay: 4000 },
+      { role: 'aria', text: 'Roberto, obrigada por me contar. Participar de reuniões sem intérprete de Libras é uma barreira comunicacional grave — e garantir esse acesso é um <strong>direito seu pela Lei Brasileira de Inclusão (Art. 74)</strong>, não um favor.<br><br>Já identifiquei: <strong>Barreira Comunicacional + possível desinformação institucional</strong>. Vou resolver isso agora.', delay: 6000, classify: true },
+      { role: 'aria', text: '✅ <strong>Soluções encontradas:</strong><br><br>1. 🤟 <strong>Intérprete presencial</strong> — a Petrobras tem contrato com empresa especializada, solicitação em até 48h<br>2. 💻 <strong>Legenda automática em tempo real</strong> — Microsoft Teams já configurado para legendas ao vivo<br>3. 📋 <strong>Ata acessível pós-reunião</strong> — compromisso formal do facilitador<br><br>Protocolo: <code>#ARB-2024-1204-AUD</code><br>RH e gestor imediato notificados.', delay: 8500, solutions: true, protocol: '#ARB-2024-1204-AUD' },
+    ]
+  },
+  fisica: {
+    flow: [
+      { role: 'aria', text: 'Olá! 👋 Sou a <strong>ARIA</strong>. Como posso te ajudar hoje?', delay: 500 },
+      { role: 'user', text: 'Oi, meu nome é Ana. Uso cadeira de rodas e o banheiro do meu andar não tem barras de apoio adequadas. Já caí uma vez.', delay: 1500 },
+      { role: 'aria', text: '⚠️ Ana, isso é uma situação de <strong>urgência alta e risco à sua segurança</strong>. Você está bem agora? Precisa de atendimento médico?<br><br>Enquanto me responde, já estou registrando isso como <strong>Barreira Arquitetônica Crítica</strong> e notificando Serviços Prediais.', delay: 3000, classify: true },
+      { role: 'user', text: 'Estou bem, foi há alguns dias. Mas o problema persiste.', delay: 5000 },
+      { role: 'aria', text: '✅ Entendido. Protocolo de urgência aberto:<br><br>📋 <code>#ARB-2024-1205-ARQ</code><br><br>🔴 <strong>Prioridade máxima</strong> — Serviços Prediais notificados para inspeção em <strong>24 horas</strong><br>✅ Instalação de barras provisórias: prazo de 3 dias úteis<br>✅ Mapa de instalações acessíveis da sua unidade enviado por e-mail<br>✅ SESMT notificado para análise ergonômica completa', delay: 7000, solutions: true, protocol: '#ARB-2024-1205-ARQ' },
+    ]
+  },
+  atitudinal: {
+    flow: [
+      { role: 'aria', text: 'Olá! 👋 Sou a <strong>ARIA</strong>. Estou aqui com você. Como posso te ajudar?', delay: 500 },
+      { role: 'user', text: 'Me chamo Pedro. Tenho deficiência física mas me considero muito capaz no trabalho. Mas meu gestor sempre passa os projetos mais importantes para outras pessoas "para não me sobrecarregar". Isso me humilha.', delay: 1500 },
+      { role: 'aria', text: 'Pedro, obrigada pela coragem de compartilhar isso. O que você está descrevendo tem nome: é <strong>capacitismo</strong> — uma forma de discriminação que subestima a capacidade profissional de pessoas com deficiência, mesmo com boas intenções aparentes.<br><br>Isso é uma <strong>barreira atitudinal</strong> e também pode configurar discriminação trabalhista. Você não está errado em se sentir desta forma. 💙', delay: 4000, classify: true },
+      { role: 'aria', text: '✅ <strong>Caminhos disponíveis agora:</strong><br><br>1. 📣 <strong>Conversa mediada</strong> — RH pode facilitar diálogo entre você e seu gestor com orientação sobre inclusão<br>2. 📋 <strong>Registro formal</strong> — Protocolo confidencial de ocorrência de capacitismo<br>3. 🎓 <strong>Treinamento para o gestor</strong> — Módulo obrigatório de conscientização sobre capacitismo (disponível pelo EAD Petrobras)<br>4. 🔒 <strong>Canal de Denúncia</strong> — Ombudsman com garantia de anonimato<br><br>Como prefere prosseguir?', delay: 7000, solutions: true,
+        options: ['📣 Mediação com RH', '📋 Registro formal', '🎓 Treinamento gestor', '🔒 Canal anônimo'] },
+    ]
+  },
+  autismo: {
+    flow: [
+      { role: 'aria', text: 'Olá! 👋 Sou a <strong>ARIA</strong>. Pode me contar o que está precisando. Aqui é um espaço seguro.', delay: 500 },
+      { role: 'user', text: 'Sou Marcos. Tenho autismo nível 1. O open space do escritório tem muito barulho e eu não consigo me concentrar. Acabo ficando muito esgotado e às vezes preciso sair correndo. Já pedi para trabalhar numa sala mais quieta mas disseram que não tem prioridade.', delay: 1500 },
+      { role: 'aria', text: 'Marcos, entendo muito bem. O que você está descrevendo — sobrecarga sensorial em ambiente aberto — é uma necessidade legítima de adaptação de acessibilidade. Não é frescura, é saúde.<br><br>Identifico: <strong>Barreira Arquitetônica + Barreira Institucional</strong> (falta de priorização de necessidade neurodivergente). Vamos resolver isso.', delay: 4500, classify: true },
+      { role: 'aria', text: '✅ <strong>Adaptações disponíveis na Petrobras:</strong><br><br>1. 🎧 <strong>Fones com cancelamento de ruído</strong> — catálogo de tecnologia assistiva, aprovação direta TIC<br>2. 🚪 <strong>Sala de baixo estímulo sensorial</strong> — Serviços Prediais identifica espaços disponíveis<br>3. 🏠 <strong>Home Office ampliado</strong> — RH pode formalizar regime híbrido estendido por laudo médico<br>4. 🗺️ <strong>Mapa de zonas quietas</strong> da sua unidade enviado por e-mail<br><br>Protocolo: <code>#ARB-2024-1206-NEU</code><br>RH e Medicina do Trabalho notificados.', delay: 7500, solutions: true, protocol: '#ARB-2024-1206-NEU' },
+    ]
+  }
+};
+
+let currentScenario = 'visual';
+let msgCount = 0;
+let timeouts = [];
+
+function clearTimeouts() {
+  timeouts.forEach(t => clearTimeout(t));
+  timeouts = [];
+}
+
+function loadScenario(name) {
+  clearTimeouts();
+  currentScenario = name;
+  document.getElementById('chatMessages').innerHTML = '';
+  document.getElementById('classificationContent').innerHTML = '<div style="color:#666; font-size:12px; text-align:center; padding:16px 0;">Aguardando descrição do colaborador...</div>';
+  document.getElementById('solutionsContent').innerHTML = '<div style="color:#666; font-size:12px; text-align:center; padding:12px 0;">Nenhuma busca realizada ainda</div>';
+  document.getElementById('routingContent').innerHTML = '<div style="color:#666; font-size:12px; text-align:center; padding:12px 0;">Aguardando classificação...</div>';
+  document.getElementById('aiConfidence').textContent = '—';
+  document.getElementById('currentStep').textContent = 'Acolhimento';
+  document.getElementById('protocolNum').textContent = '—';
+  msgCount = 0;
+  document.getElementById('msgCount').textContent = '0';
+
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  event && event.target && event.target.classList.add('active');
+
+  // Reset steps
+  ['step1','step2','step3','step4','step5'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+    if (i === 0) el.classList.add('done');
+    if (i === 1) el.classList.add('active');
+  });
+
+  const flow = scenarios[name].flow;
+  flow.forEach((msg, idx) => {
+    const t = setTimeout(() => playMessage(msg, idx, flow.length), msg.delay);
+    timeouts.push(t);
+  });
+}
+
+function playMessage(msg, idx, total) {
+  const container = document.getElementById('chatMessages');
+
+  // Show typing for aria messages
+  if (msg.role === 'aria') {
+    const typingRow = document.createElement('div');
+    typingRow.className = 'msg-row';
+    typingRow.id = 'typing-indicator';
+    typingRow.innerHTML = `
+      <div class="msg-avatar aria">🤖</div>
+      <div class="bubble aria">
+        <div class="typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      </div>`;
+    container.appendChild(typingRow);
+    container.scrollTop = container.scrollHeight;
+
+    setTimeout(() => {
+      const existing = document.getElementById('typing-indicator');
+      if (existing) existing.remove();
+      appendMessage(msg, idx, total, container);
+    }, 1000);
+  } else {
+    appendMessage(msg, idx, total, container);
+  }
+}
+
+function appendMessage(msg, idx, total, container) {
+  msgCount++;
+  document.getElementById('msgCount').textContent = msgCount;
+
+  const row = document.createElement('div');
+  row.className = `msg-row ${msg.role}`;
+
+  const now = new Date();
+  const time = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const avatarIcon = msg.role === 'aria' ? '🤖' : '👤';
+  const avatarClass = msg.role === 'aria' ? 'aria' : 'user';
+
+  let extra = '';
+
+  if (msg.options) {
+    extra += `<div class="quick-opts">` + msg.options.map(o =>
+      `<span class="quick-opt" onclick="sendOption('${o}')">${o}</span>`
+    ).join('') + `</div>`;
+  }
+
+  if (msg.classify) {
+    updateClassification();
+    document.getElementById('currentStep').textContent = 'Coleta / Análise';
+    document.getElementById('aiConfidence').textContent = '94%';
+    updateRouting();
+    const step2 = document.getElementById('step2');
+    step2.classList.remove('active');
+    step2.classList.add('done');
+    document.getElementById('step3').classList.add('active');
+  }
+
+  if (msg.solutions) {
+    updateSolutions();
+    document.getElementById('currentStep').textContent = 'Encaminhamento';
+    const step3 = document.getElementById('step3');
+    step3.classList.remove('active');
+    step3.classList.add('done');
+    document.getElementById('step4').classList.add('active');
+  }
+
+  if (msg.protocol) {
+    document.getElementById('protocolNum').textContent = msg.protocol;
+    const step4 = document.getElementById('step4');
+    step4.classList.remove('active');
+    step4.classList.add('done');
+    document.getElementById('step5').classList.add('active');
+    document.getElementById('currentStep').textContent = 'Acompanhamento';
+  }
+
+  row.innerHTML = `
+    <div class="msg-avatar ${avatarClass}">${avatarIcon}</div>
+    <div class="bubble ${msg.role}">
+      ${msg.text}
+      ${extra}
+      <span class="timestamp">${time}</span>
+    </div>`;
+
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function updateClassification() {
+  const classifications = {
+    visual: `
+      <div class="ai-label">🔍 Classificação automática</div>
+      <div><span class="ai-tag tag-tech">Tecnológica</span><span class="ai-tag tag-att">Atitudinal</span></div>
+      <div style="margin-top:8px">
+        <div class="ai-tag tag-visual">👁️ Deficiência Visual (Parcial)</div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="ai-tag tag-high">🔴 Urgência: Alta</div>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:#aaa">Confiança do modelo: <strong style="color:#00d4aa">94%</strong></div>`,
+    auditiva: `
+      <div class="ai-label">🔍 Classificação automática</div>
+      <div><span class="ai-tag tag-tech">Comunicacional</span><span class="ai-tag tag-att">Institucional</span></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-visual">👂 Deficiência Auditiva</div></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-high">🔴 Urgência: Alta</div></div>
+      <div style="margin-top:8px; font-size:11px; color:#aaa">Confiança: <strong style="color:#00d4aa">97%</strong></div>`,
+    fisica: `
+      <div class="ai-label">🔍 Classificação automática</div>
+      <div><span class="ai-tag tag-tech">Arquitetônica</span><span class="ai-tag tag-att">Segurança</span></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-visual">♿ Deficiência Física</div></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-high">🔴 Urgência: CRÍTICA</div></div>
+      <div style="margin-top:8px; font-size:11px; color:#aaa">Confiança: <strong style="color:#00d4aa">99%</strong></div>`,
+    atitudinal: `
+      <div class="ai-label">🔍 Classificação automática</div>
+      <div><span class="ai-tag tag-att">Atitudinal</span><span class="ai-tag tag-att">Capacitismo</span></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-visual">♿ Deficiência Física</div></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-high">🟠 Urgência: Alta</div></div>
+      <div style="margin-top:8px; font-size:11px; color:#ff6b6b">⚠️ Possível discriminação detectada</div>`,
+    autismo: `
+      <div class="ai-label">🔍 Classificação automática</div>
+      <div><span class="ai-tag tag-tech">Arquitetônica</span><span class="ai-tag tag-att">Institucional</span></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-visual">🧩 Neurodivergência (TEA)</div></div>
+      <div style="margin-top:8px"><div class="ai-tag tag-high">🟡 Urgência: Média-Alta</div></div>
+      <div style="margin-top:8px; font-size:11px; color:#aaa">Confiança: <strong style="color:#00d4aa">91%</strong></div>`,
+  };
+  document.getElementById('classificationContent').innerHTML = `<div class="ai-box">${classifications[currentScenario] || classifications.visual}</div>`;
+}
+
+function updateSolutions() {
+  const solutions = {
+    visual: `
+      <div class="resource-item"><span class="res-icon">🖥️</span><div class="res-info"><h5>Monitor Full HD 27"</h5><p>Catálogo TIC · 15 dias úteis</p></div></div>
+      <div class="resource-item"><span class="res-icon">💻</span><div class="res-info"><h5>Leitor de tela NVDA</h5><p>Já licenciado · Sem aprovação gestor</p></div></div>
+      <div class="resource-item"><span class="res-icon">🔍</span><div class="res-info"><h5>ZoomText Ampliador</h5><p>Instalação remota · 5 dias</p></div></div>`,
+    auditiva: `
+      <div class="resource-item"><span class="res-icon">🤟</span><div class="res-info"><h5>Intérprete de Libras</h5><p>Contrato ativo · 48h de antecedência</p></div></div>
+      <div class="resource-item"><span class="res-icon">📝</span><div class="res-info"><h5>Legendas Teams em tempo real</h5><p>Disponível imediatamente</p></div></div>
+      <div class="resource-item"><span class="res-icon">📋</span><div class="res-info"><h5>Ata acessível pós-reunião</h5><p>Protocolo formal obrigatório</p></div></div>`,
+    fisica: `
+      <div class="resource-item"><span class="res-icon">🔧</span><div class="res-info"><h5>Barras de apoio provisórias</h5><p>Serviços Prediais · 3 dias úteis</p></div></div>
+      <div class="resource-item"><span class="res-icon">🗺️</span><div class="res-info"><h5>Mapa de inst. acessíveis</h5><p>Enviado por e-mail imediatamente</p></div></div>
+      <div class="resource-item"><span class="res-icon">👷</span><div class="res-info"><h5>Análise ergonômica SESMT</h5><p>Agendamento em até 5 dias</p></div></div>`,
+    atitudinal: `
+      <div class="resource-item"><span class="res-icon">🤝</span><div class="res-info"><h5>Mediação RH</h5><p>Facilitação de diálogo estruturado</p></div></div>
+      <div class="resource-item"><span class="res-icon">🎓</span><div class="res-info"><h5>Treinamento anti-capacitismo</h5><p>EAD Petrobras · Obrigatório para gestor</p></div></div>
+      <div class="resource-item"><span class="res-icon">🔒</span><div class="res-info"><h5>Canal Ombudsman</h5><p>Anonimato garantido</p></div></div>`,
+    autismo: `
+      <div class="resource-item"><span class="res-icon">🎧</span><div class="res-info"><h5>Fones c/ cancelamento de ruído</h5><p>Catálogo assistivo · Aprovação direta TIC</p></div></div>
+      <div class="resource-item"><span class="res-icon">🚪</span><div class="res-info"><h5>Sala de baixo estímulo</h5><p>Mapeamento Serviços Prediais</p></div></div>
+      <div class="resource-item"><span class="res-icon">🏠</span><div class="res-info"><h5>Home Office ampliado</h5><p>Com laudo médico · Formalização RH</p></div></div>`,
+  };
+  document.getElementById('solutionsContent').innerHTML = solutions[currentScenario] || solutions.visual;
+}
+
+function updateRouting() {
+  const routings = {
+    visual: `
+      <div class="stat-row"><span class="stat-label">🖥️ TIC</span><span class="stat-val teal">Notificada</span></div>
+      <div class="stat-row"><span class="stat-label">👥 RH / BP</span><span class="stat-val teal">Notificado</span></div>
+      <div class="stat-row"><span class="stat-label">⚕️ SESMT</span><span class="stat-val yellow">Em standby</span></div>`,
+    auditiva: `
+      <div class="stat-row"><span class="stat-label">📢 Comunicação</span><span class="stat-val teal">Notificada</span></div>
+      <div class="stat-row"><span class="stat-label">👥 RH</span><span class="stat-val teal">Notificado</span></div>`,
+    fisica: `
+      <div class="stat-row"><span class="stat-label">🏗️ Serv. Prediais</span><span class="stat-val" style="color:#ff6b6b">URGENTE</span></div>
+      <div class="stat-row"><span class="stat-label">⚕️ SESMT</span><span class="stat-val teal">Notificado</span></div>
+      <div class="stat-row"><span class="stat-label">👥 RH</span><span class="stat-val teal">Notificado</span></div>`,
+    atitudinal: `
+      <div class="stat-row"><span class="stat-label">👥 RH / BP</span><span class="stat-val" style="color:#ff6b6b">PRIORITÁRIO</span></div>
+      <div class="stat-row"><span class="stat-label">🔒 Ombudsman</span><span class="stat-val yellow">Disponível</span></div>`,
+    autismo: `
+      <div class="stat-row"><span class="stat-label">👥 RH</span><span class="stat-val teal">Notificado</span></div>
+      <div class="stat-row"><span class="stat-label">⚕️ Med. Trabalho</span><span class="stat-val teal">Notificado</span></div>
+      <div class="stat-row"><span class="stat-label">🏗️ Serv. Prediais</span><span class="stat-val yellow">Em análise</span></div>`,
+  };
+  document.getElementById('routingContent').innerHTML = routings[currentScenario] || routings.visual;
+}
+
+function sendOption(opt) {
+  const container = document.getElementById('chatMessages');
+  msgCount++;
+  document.getElementById('msgCount').textContent = msgCount;
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  const now = new Date();
+  const time = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  row.innerHTML = `
+    <div class="msg-avatar user">👤</div>
+    <div class="bubble user">${opt}<span class="timestamp">${time}</span></div>`;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+  sendOption(text);
+  input.value = '';
+
+  // Generic aria response
+  setTimeout(() => {
+    const container = document.getElementById('chatMessages');
+    const row = document.createElement('div');
+    row.className = 'msg-row';
+    const now = new Date();
+    const time = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    row.innerHTML = `
+      <div class="msg-avatar aria">🤖</div>
+      <div class="bubble aria">Obrigada pela informação! Estou processando sua mensagem e buscarei a melhor solução para você. 💙<span class="timestamp">${time}</span></div>`;
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+    msgCount++;
+    document.getElementById('msgCount').textContent = msgCount;
+  }, 1500);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter') sendMessage();
+}
+
+function toggleContrast() {
+  document.body.style.background = document.body.style.background === 'rgb(0, 0, 0)' ? '' : '#000';
+  document.body.style.color = document.body.style.color === 'rgb(255, 255, 0)' ? '' : '#ff0';
+}
+
+function voiceInput() {
+  document.getElementById('userInput').value = 'Estou simulando entrada por voz — tenho dificuldade de acessibilidade...';
+  document.getElementById('userInput').focus();
+}
+
+function increaseText() {
+  const msgs = document.querySelectorAll('.bubble');
+  msgs.forEach(m => {
+    const cur = parseFloat(window.getComputedStyle(m).fontSize);
+    m.style.fontSize = (cur + 1) + 'px';
+  });
+}
+
+// Load initial scenario
+window.onload = () => loadScenario('visual');
+</script>
+</body>
+</html>
