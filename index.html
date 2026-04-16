@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -374,10 +375,7 @@
 
 <!-- Header -->
 <div class="header">
-  <div class="aria-avatar">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Petrobras_horizontal_logo.svg/1280px-Petrobras_horizontal_logo.svg.png" alt="Logo Petrobras">
-  </div>
-  <div class="header-info">
+  <div class="aria-avatar">🤖</div>
   <div class="header-info">
     <h1>ARIA — Assistente de Inteligência em Acessibilidade</h1>
     <p>Petrobras · Sistema de Suporte Inclusivo · Powered by IA</p>
@@ -636,11 +634,8 @@ function playMessage(msg, idx, total) {
     typingRow.className = 'msg-row';
     typingRow.id = 'typing-indicator';
     typingRow.innerHTML = `
-     <div class="header">
-  <div class="aria-avatar">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Petrobras_horizontal_logo.svg/1280px-Petrobras_horizontal_logo.svg.png" alt="Logo Petrobras">
-  </div>
-  <div class="header-info">
+      <div class="msg-avatar aria">🤖</div>
+      <div class="bubble aria">
         <div class="typing-indicator">
           <div class="typing-dot"></div>
           <div class="typing-dot"></div>
@@ -877,3 +872,4 @@ window.onload = () => loadScenario('visual');
 </script>
 </body>
 </html>
+
